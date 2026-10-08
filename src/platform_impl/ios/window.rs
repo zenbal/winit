@@ -15,6 +15,7 @@ use objc2_ui_kit::{
 use tracing::{debug, warn};
 
 use super::app_state::EventWrapper;
+use super::scene;
 use super::view::WinitView;
 use super::view_controller::WinitViewController;
 use crate::cursor::Cursor;
@@ -83,6 +84,11 @@ impl WinitUIWindow {
         let this: Retained<Self> = unsafe { msg_send_id![mtm.alloc(), initWithFrame: frame] };
 
         this.setRootViewController(Some(view_controller));
+
+        // With the scene life cycle, the window scene decides the screen (see `scene.rs`).
+        if scene::uses_scene_lifecycle() {
+            return this;
+        }
 
         match window_attributes.fullscreen.clone().map(Into::into) {
             Some(Fullscreen::Exclusive(ref video_mode)) => {
@@ -317,7 +323,7 @@ impl Inner {
 
         // this is pretty slow on iOS, so avoid doing it if we can
         let current = self.window.screen();
-        if uiscreen != current {
+        if uiscreen != current && !scene::uses_scene_lifecycle() {
             self.window.setScreen(&uiscreen);
         }
 

@@ -22,6 +22,7 @@ use objc2_foundation::{
 };
 use objc2_ui_kit::{UIApplication, UICoordinateSpace, UIView, UIWindow};
 
+use super::scene;
 use super::window::WinitUIWindow;
 use crate::dpi::PhysicalSize;
 use crate::event::{Event, InnerSizeWriter, StartCause, WindowEvent};
@@ -434,7 +435,7 @@ pub(crate) fn set_key_window(mtm: MainThreadMarker, window: &Retained<WinitUIWin
         },
     }
     drop(this);
-    window.makeKeyAndVisible();
+    scene::show_window(mtm, window);
 }
 
 pub(crate) fn queue_gl_or_metal_redraw(mtm: MainThreadMarker, window: Retained<WinitUIWindow>) {
@@ -482,15 +483,18 @@ pub fn did_finish_launching(mtm: MainThreadMarker) {
         // [ApplicationLifecycle] Windows were created before application initialization
         // completed. This may result in incorrect visual appearance.
         // ```
-        let screen = window.screen();
-        let _: () = unsafe { msg_send![&window, setScreen: ptr::null::<AnyObject>()] };
-        window.setScreen(&screen);
+        // With the scene life cycle, the scene owns the screen and `setScreen:` is forbidden.
+        if !scene::uses_scene_lifecycle() {
+            let screen = window.screen();
+            let _: () = unsafe { msg_send![&window, setScreen: ptr::null::<AnyObject>()] };
+            window.setScreen(&screen);
+        }
 
         let controller = window.rootViewController();
         window.setRootViewController(None);
         window.setRootViewController(controller.as_deref());
 
-        window.makeKeyAndVisible();
+        scene::show_window(mtm, &window);
     }
 
     let (windows, events) = AppState::get_mut(mtm).did_finish_launching_transition();
@@ -502,7 +506,7 @@ pub fn did_finish_launching(mtm: MainThreadMarker) {
     // the above window dance hack, could possibly trigger new windows to be created.
     // we can just set those windows up normally, as they were created after didFinishLaunching
     for window in windows {
-        window.makeKeyAndVisible();
+        scene::show_window(mtm, &window);
     }
 }
 

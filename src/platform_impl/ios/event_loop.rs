@@ -19,7 +19,8 @@ use objc2_ui_kit::{
     UIApplicationDidEnterBackgroundNotification, UIApplicationDidFinishLaunchingNotification,
     UIApplicationDidReceiveMemoryWarningNotification, UIApplicationMain,
     UIApplicationWillEnterForegroundNotification, UIApplicationWillResignActiveNotification,
-    UIApplicationWillTerminateNotification, UIDevice, UIScreen, UIUserInterfaceIdiom,
+    UIApplicationWillTerminateNotification, UIDevice, UISceneWillConnectNotification, UIScreen,
+    UIUserInterfaceIdiom,
 };
 
 use crate::error::EventLoopError;
@@ -33,7 +34,7 @@ use crate::window::{CustomCursor, CustomCursorSource, Theme};
 
 use super::app_state::{send_occluded_event_for_all_windows, AppState, EventWrapper};
 use super::notification_center::create_observer;
-use super::{app_state, monitor, MonitorHandle};
+use super::{app_state, monitor, scene, MonitorHandle};
 
 #[derive(Debug)]
 pub struct ActiveEventLoop {
@@ -150,6 +151,7 @@ pub struct EventLoop<T: 'static> {
     _did_enter_background_observer: Retained<NSObject>,
     _will_terminate_observer: Retained<NSObject>,
     _did_receive_memory_warning_observer: Retained<NSObject>,
+    _scene_will_connect_observer: Retained<NSObject>,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -243,6 +245,17 @@ impl<T: 'static> EventLoop<T> {
                 app_state::terminated(&app);
             },
         );
+        let _scene_will_connect_observer = create_observer(
+            &center,
+            // `scene:willConnectToSession:options:`
+            unsafe { UISceneWillConnectNotification },
+            move |notification| {
+                let scene = unsafe { notification.object() }
+                    .expect("UISceneWillConnectNotification to have scene object");
+                scene::scene_will_connect(&scene);
+            },
+        );
+
         let _did_receive_memory_warning_observer = create_observer(
             &center,
             // `applicationDidReceiveMemoryWarning:`
@@ -267,6 +280,7 @@ impl<T: 'static> EventLoop<T> {
             _did_enter_background_observer,
             _will_terminate_observer,
             _did_receive_memory_warning_observer,
+            _scene_will_connect_observer,
         })
     }
 

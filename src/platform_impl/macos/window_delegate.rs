@@ -887,18 +887,8 @@ impl WindowDelegate {
         self.window().setBackgroundColor(Some(&color));
     }
 
-    pub fn set_blur(&self, blur: bool) {
-        // NOTE: in general we want to specify the blur radius, but the choice of 80
-        // should be a reasonable default.
-        let radius = if blur { 80 } else { 0 };
-        let window_number = unsafe { self.window().windowNumber() };
-        unsafe {
-            ffi::CGSSetWindowBackgroundBlurRadius(
-                ffi::CGSMainConnectionID(),
-                window_number,
-                radius,
-            );
-        }
+    pub fn set_blur(&self, _blur: bool) {
+        // no-op: removed private API usage for App Store compliance
     }
 
     pub fn set_visible(&self, visible: bool) {
