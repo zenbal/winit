@@ -190,13 +190,10 @@ impl Inner {
     }
 
     pub fn inner_size(&self) -> PhysicalSize<u32> {
-        let scale_factor = self.scale_factor();
-        let safe_area = self.safe_area_screen_space();
-        let size = LogicalSize {
-            width: safe_area.size.width as f64,
-            height: safe_area.size.height as f64,
-        };
-        size.to_physical(scale_factor)
+        let bounds = self.view.bounds();
+        let size =
+            LogicalSize { width: bounds.size.width as f64, height: bounds.size.height as f64 };
+        size.to_physical(self.view.contentScaleFactor() as f64)
     }
 
     pub fn outer_size(&self) -> PhysicalSize<u32> {
